@@ -1,6 +1,6 @@
 # FastSpeech 2 - Puppetry
 
-This is a fork of FastSpeech2 to allow voice puppetry. Early WIP, not yet functional.
+This is a fork of FastSpeech 2 to allow voice puppetry. Early WIP, not yet functional.
 
 Original readme below.
 
