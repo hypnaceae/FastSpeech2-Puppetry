@@ -14,6 +14,8 @@ from utils.tools import to_device, synth_samples
 from dataset import TextDataset
 from text import text_to_sequence
 
+import puppetry_utils as puppet
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -85,6 +87,7 @@ def preprocess_mandarin(text, preprocess_config):
 
 
 def synthesize(model, step, configs, vocoder, batchs, control_values):
+
     preprocess_config, model_config, train_config = configs
     pitch_control, energy_control, duration_control = control_values
 
@@ -168,13 +171,25 @@ if __name__ == "__main__":
         default=1.0,
         help="control the speed of the whole utterance, larger value for slower speaking rate",
     )
+    parser.add_argument(
+        "--puppetry_filepath",
+        type=str,
+        default="./puppetry-input/input.wav",
+        help="file path for puppetry input wav",
+    )
+    parser.add_argument(
+        "--puppetry_options",
+        type=str,
+        default="d",
+        help="choose which parameter to activate puppetry for. d for duration, p for pitch, e for energy",
+    )
     args = parser.parse_args()
 
     # Check source texts
     if args.mode == "batch":
-        assert args.source is not None and args.text is None
+        assert args.source is not None and args.text is None or args.puppetry_filepath is not None
     if args.mode == "single":
-        assert args.source is None and args.text is not None
+        assert args.source is None and (args.text is not None or args.puppetry_filepath is not None)
 
     # Read Config
     preprocess_config = yaml.load(
@@ -200,14 +215,30 @@ if __name__ == "__main__":
             collate_fn=dataset.collate_fn,
         )
     if args.mode == "single":
-        ids = raw_texts = [args.text[:100]]
-        speakers = np.array([args.speaker_id])
-        if preprocess_config["preprocessing"]["text"]["language"] == "en":
-            texts = np.array([preprocess_english(args.text, preprocess_config)])
-        elif preprocess_config["preprocessing"]["text"]["language"] == "zh":
-            texts = np.array([preprocess_mandarin(args.text, preprocess_config)])
-        text_lens = np.array([len(texts[0])])
-        batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
+        if args.puppetry_filepath is not None:  # i.e do puppetry
+            pass
+            # do the same as below except using puppetry ASR output
+            asr_text = puppet.transcribe_audio(args.puppetry_filepath)
+            ids = raw_texts = [asr_text[:100]]
+            speakers = np.array([args.speaker_id])
+            if preprocess_config["preprocessing"]["text"]["language"] == "en":
+                texts = np.array([preprocess_english(asr_text, preprocess_config)])
+            elif preprocess_config["preprocessing"]["text"]["language"] == "zh":
+                print("Chinese is currently not supported for voice puppetry")
+                quit()
+            text_lens = np.array([len(texts[0])])
+            batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
+
+        else:  # i.e no puppetry
+            ids = raw_texts = [args.text[:100]]
+            speakers = np.array([args.speaker_id])
+            if preprocess_config["preprocessing"]["text"]["language"] == "en":
+                texts = np.array([preprocess_english(args.text, preprocess_config)])
+            elif preprocess_config["preprocessing"]["text"]["language"] == "zh":
+                texts = np.array([preprocess_mandarin(args.text, preprocess_config)])
+            text_lens = np.array([len(texts[0])])
+            batchs = [(ids, raw_texts, speakers, texts, text_lens, max(text_lens))]
+
 
     control_values = args.pitch_control, args.energy_control, args.duration_control
 
