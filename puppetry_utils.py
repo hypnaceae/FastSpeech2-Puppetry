@@ -80,9 +80,10 @@ def align_audio(input_filepath, input_txt):
 
 def test_alignment():
     # just align input.wav and input.txt and print result
-    print(align_audio("C:/Users/uwu/PycharmProjects/FastSpeechPuppetry/puppetry-input/input.wav",
-                      "C:/Users/uwu/PycharmProjects/FastSpeechPuppetry/puppetry-input/input.txt"))
+    # need to use full filepath here for some reason
+    print(align_audio("./puppetry-input/input.wav",
+                      "./puppetry-input/input.txt"))
 
 #test_alignment()
 
-# how to do pitch puppetry? maybe pitch per frame? need to find out how fs2 sets pitch targets...
+# how to do pitch puppetry? pitch per frame? need to find out how fs2 sets pitch targets...
